@@ -1,11 +1,11 @@
-name: Publish V0.5.0 release
+name: Publish approved V0.5.0 files
 
 on:
   push:
     branches: [main]
     paths:
       - ".github/workflows/release-v0.5.0.yml"
-      - "installer/workbench.iss"
+      - "downloads/approved-setup-parts/**"
       - "downloads/33Works-LINE-Workbench-Portable-V0.5.0.zip"
   workflow_dispatch:
 
@@ -14,60 +14,33 @@ permissions:
 
 jobs:
   release:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verify and unpack approved portable package
-        shell: pwsh
+      - name: Reassemble and verify user-approved files
+        shell: bash
         run: |
-          $ErrorActionPreference = 'Stop'
-          $zip = 'downloads/33Works-LINE-Workbench-Portable-V0.5.0.zip'
-          $digest = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($digest -ne '77cfdbd8fa47d302db312ac059e844208c53f75cedaee9f90d0b7e4fe284fa05') {
-            throw "Portable ZIP differs from approved upload: $digest"
-          }
-          Expand-Archive -LiteralPath $zip -DestinationPath stage -Force
-          $required = @('33Works-LINE-Workbench.exe', 'EXE-Launcher.ps1', 'LINE-Workbench-Launcher.ps1', 'logo.ico', 'config.json')
-          foreach ($name in $required) {
-            if (-not (Test-Path -LiteralPath (Join-Path stage $name))) { throw "Missing $name" }
-          }
+          set -euo pipefail
+          mkdir -p release-output
+          cat downloads/approved-setup-parts/setup.part-{00,01,02,03,04} > release-output/33Works-LINE-Workbench-Setup-V0.5.0.exe
+          cp downloads/33Works-LINE-Workbench-Portable-V0.5.0.zip release-output/
+          cd release-output
+          echo "7881a81ccd86ab7d9c0a52ffc8f69fed1a7793cb64fe6a1ebfea2fe0b74e8d51  33Works-LINE-Workbench-Setup-V0.5.0.exe" > SHA256SUMS.txt
+          echo "77cfdbd8fa47d302db312ac059e844208c53f75cedaee9f90d0b7e4fe284fa05  33Works-LINE-Workbench-Portable-V0.5.0.zip" >> SHA256SUMS.txt
+          sha256sum --check SHA256SUMS.txt
 
-      - name: Build installer from the same panel
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $compiler = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
-          if (-not (Test-Path -LiteralPath $compiler)) {
-            choco install innosetup --yes --no-progress
-          }
-          if (-not (Test-Path -LiteralPath $compiler)) { throw "Inno Setup compiler not found" }
-          & $compiler 'installer/workbench.iss'
-          if ($LASTEXITCODE -ne 0) { throw "Installer build failed" }
-          $installer = 'output/33Works-LINE-Workbench-Setup-V0.5.0.exe'
-          if ((Get-Item $installer).Length -lt 100000) { throw "Installer too small" }
-          $files = @($installer, 'downloads/33Works-LINE-Workbench-Portable-V0.5.0.zip')
-          $lines = foreach ($file in $files) {
-            $hash = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
-            "$hash  $(Split-Path $file -Leaf)"
-          }
-          [System.IO.File]::WriteAllLines((Join-Path $PWD 'SHA256SUMS.txt'), $lines)
-
-      - name: Publish installer and portable ZIP
-        shell: pwsh
+      - name: Publish exact approved installer and portable ZIP
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $ErrorActionPreference = 'Stop'
-          @'
-          ## V0.5.0 面板更新
+          set -euo pipefail
+          cat > release-notes.md <<'NOTES'
+          ## V0.5.0 已確認面板
 
-          安裝版與免安裝版均由同一份已確認的縮小面板製作。
-          支援好友或群組、文字與圖片傳送、排程，以及自願支持入口。
-
-          排程執行期間請保持 LINE 電腦版、工作台與電腦開啟。
-          '@ | Set-Content -Path release-notes.md -Encoding utf8
-          gh release upload v0.5.0 output/33Works-LINE-Workbench-Setup-V0.5.0.exe downloads/33Works-LINE-Workbench-Portable-V0.5.0.zip SHA256SUMS.txt --clobber
-          if ($LASTEXITCODE -ne 0) { throw "Release upload failed" }
-          gh release edit v0.5.0 --title '33 Works LINE 自動化工作台 V0.5.0' --notes-file release-notes.md
-          if ($LASTEXITCODE -ne 0) { throw "Release edit failed" }
+          安裝版與免安裝版均為使用者確認的檔案，沿用 V0.5.0 檔名。
+          下載後可使用 SHA256SUMS.txt 核對檔案。
+          NOTES
+          gh release upload v0.5.0 release-output/33Works-LINE-Workbench-Setup-V0.5.0.exe release-output/33Works-LINE-Workbench-Portable-V0.5.0.zip release-output/SHA256SUMS.txt --clobber
+          gh release edit v0.5.0 --title "33 Works LINE 自動化工作台 V0.5.0" --notes-file release-notes.md
