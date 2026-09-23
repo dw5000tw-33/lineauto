@@ -9,17 +9,17 @@ DefaultDirName={localappdata}\Programs\33 Works\LINE 自動化工作台
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
-OutputDir=output
+OutputDir=..\output
 OutputBaseFilename=33Works-LINE-Workbench-Setup-V0.5.0
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
-SetupIconFile=stage\logo.ico
+SetupIconFile=..\stage\logo.ico
 UninstallDisplayIcon={app}\logo.ico
 ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 [Files]
-Source: "stage\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\stage\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\33Works-LINE-Workbench.exe"; IconFilename: "{app}\logo.ico"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\33Works-LINE-Workbench.exe"; IconFilename: "{app}\logo.ico"; Tasks: desktopicon
