@@ -28,13 +28,9 @@ jobs:
       - name: Prepare public files
         shell: bash
         run: |
-          mkdir -p _site/downloads
+          mkdir -p _site
           cp index.html styles.css script.js .nojekyll _site/
           cp -R assets _site/
-          cp downloads/33Works-LINE-Workbench-Portable-V0.5.0.zip _site/downloads/
-          cat downloads/setup-parts/33Works-LINE-Workbench-Setup-V0.5.0.exe.part-* > _site/downloads/33Works-LINE-Workbench-Setup-V0.5.0.exe
-          echo "6a8389119fd2f2cd150121dda22b8b1e1fd6b6507e2b3dd123333a8763422b69  _site/downloads/33Works-LINE-Workbench-Setup-V0.5.0.exe" | sha256sum --check
-          echo "0acb795d55dbb984839cac203a397462ecd2fc6013f3f671882a596ef794ad85  _site/downloads/33Works-LINE-Workbench-Portable-V0.5.0.zip" | sha256sum --check
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
